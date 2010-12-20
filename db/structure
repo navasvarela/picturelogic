@@ -1,0 +1,5 @@
+BEGIN TRANSACTION;
+CREATE TABLE picture (description TEXT, filename NUMERIC, id INTEGER PRIMARY KEY, name TEXT, path TEXT, volumeid NUMERIC);
+CREATE TABLE picturetag (id INTEGER PRIMARY KEY, pictureid NUMERIC, tagid NUMERIC);
+CREATE TABLE tag (id INTEGER PRIMARY KEY, name TEXT);
+COMMIT;
