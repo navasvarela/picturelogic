@@ -1,4 +1,5 @@
 import gtk
+import gobject
 from pictures import *
 import logging
 import logging.config 
@@ -26,7 +27,10 @@ class PictureLogic:
                  "on_import_folder_activate": self.importFolder,
                  "on_importfolder_ok_button_clicked": self.doImportFolder,
                  "on_open_image_activate": self.openImage,
-                 "on_search_button_clicked" : self.search
+                 "on_search_button_clicked" : self.search,
+                 "on_pictures_iconview_item_activated" : self.iconview_item_activated,
+                 "on_pictures_iconview_selection_changed" : self.iconview_selection_changed,
+                 "on_pictures_iconview_button_press_event": self.iconview_button_press_events
                  }
           self.builder.connect_signals(dic)
           self.iconView = self.builder.get_object("pictures_iconview")
@@ -55,20 +59,39 @@ class PictureLogic:
         self.openImageDialog = self.builder.get_object("openimagedialog")
         self.openImageDialog.show()
     def refresh_images(self):
-        self.pictures_store = gtk.ListStore(gtk.gdk.Pixbuf)
+        self.pictures_store = gtk.ListStore(gtk.gdk.Pixbuf, gobject.TYPE_STRING)
         self.iconView.set_model(self.pictures_store)
         self.iconView.set_pixbuf_column(0)
+        self.iconView.set_text_column(1)
         self.pictures = get_pictures_from_db()
         if self.pictures == []:
             return
         for picture in self.pictures:
             print picture
             pixbuf = gtk.gdk.pixbuf_new_from_file(picture[0])
-            self.pictures_store.append((pixbuf,))
+            self.pictures_store.append([pixbuf,picture[2]])
         
     def search(self,widget):
         pass
+    
+    def iconview_item_activated(self,widget, item):
+        logger.debug("item activated: "+self.pictures_store[item][1])
+        pass
+    
+    def iconview_selection_changed(self, widget):
+        for item in self.iconView.get_selected_items():
+            logger.debug("item selected: "+self.pictures_store[item][1])
         
+        pass
+        
+    def iconview_button_press_events(self,widget, event):
+        logger.debug("button_press_event, event: %d " % event.button)
+        item = self.iconView.get_path_at_pos(event.x, event.y)
+        
+        if (event.button == 3 and item != None ):
+         
+          logger.debug("item where right click ocurred: "+self.pictures_store[item][1])
+        pass
 class About:
     
     def __init__(self, builder):

@@ -183,7 +183,6 @@
                         <property name="position">0</property>
                       </packing>
                     </child>
-                  
                     <child>
                       <object class="GtkButton" id="search_button">
                         <property name="label" translatable="yes">search</property>
@@ -231,6 +230,9 @@
                     <property name="can_focus">True</property>
                     <property name="selection_mode">multiple</property>
                     <property name="model">pictures_liststore</property>
+                    <signal name="button_press_event" handler="on_pictures_iconview_button_press_event"/>
+                    <signal name="item_activated" handler="on_pictures_iconview_item_activated"/>
+                    <signal name="selection_changed" handler="on_pictures_iconview_selection_changed"/>
                   </object>
                 </child>
               </object>
