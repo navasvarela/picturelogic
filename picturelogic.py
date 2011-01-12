@@ -1,5 +1,6 @@
 import gtk
 import gobject
+import sys
 from pictures import *
 import logging
 import logging.config 
@@ -81,10 +82,23 @@ class PictureLogic:
         pass
     
     def iconview_selection_changed(self, widget):
-        for item in self.iconView.get_selected_items():
+        items = self.iconView.get_selected_items()
+        self.exif_label = self.builder.get_object('exif_label')
+        for item in items:
             logger.debug("item selected: "+self.pictures_store[item][1])
+        # If there is only one item selected, display exif.
+        label_str = ''
+        if len(items) == 1:
+            item = items[0]
+            picture = self.pictures[item[0]]
+            label_str += 'File: '+picture[2]+'\n'
+            exif = parse_db_exif(picture[6])
+            print exif
+            for k in exif:
+               label_str += k +':' +exif[k] +'\n'
+            
+            self.exif_label.set_text(label_str)
         
-        pass
         
     def iconview_button_press_events(self,widget, event):      
         item = self.iconView.get_path_at_pos(event.x, event.y)
@@ -123,7 +137,7 @@ class About:
         self.window = builder.get_object("aboutdialog")
         self.window.show()
             
-    
+print sys.path    
 PictureLogic()
 gtk.main()   
     

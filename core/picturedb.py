@@ -24,9 +24,11 @@ def init_db():
         logger.debug("Trying to open DB structure file. It must exist")
         structFile = open(DB_STRUCT_FILE, 'r') #@UndefinedVariable
         logger.debug("Trying to open DB file")
-        dbFile = open(DB_FILE,'w+') #@UndefinedVariable
-        if not dbFile.readline():
+        execute_sql('SELECT * FROM VOLUMES')
+        
+    except OperationalError:
             logger.debug("DB file is either empty or non existent, creating empty database")
+            print "Creating empty database"
             connection = get_connection()
             cursor = connection.cursor()
             while True:
@@ -34,8 +36,7 @@ def init_db():
                 if not line: break
                 cursor.execute(line)
             cursor.close()
-    finally:
-        
+    finally:      
         structFile.close()
-        dbFile.close()
+       
     
