@@ -1,10 +1,11 @@
 import os
 import logging
 import logging.config 
-from sqlite3 import *
 from config import * 
-import Image    
+import Image 
+import picturedb   
 from ExifTags import TAGS
+from picturedb import get_connection, init_db
 
 
 # create logger
@@ -14,16 +15,7 @@ logger = logging.getLogger("pictures")
 
 image_exts = ['jpg', 'JPG', 'png', 'gif', 'tif', 'bmp', 'xpm']
         
-def get_connection():
-    print "Connecting to DB: " + DB_FILE   #@UndefinedVariable
-    return connect(DB_FILE)  #@UndefinedVariable
 
-def execute_sql(sql):
-    connection = get_connection()
-    cursor = connection.cursor()
-    cursor.execute(sql)
-    connection.commit()
-    cursor.close()
 
 def get_pictures_insert_stmt(picture):
     return 'INSERT INTO PICTURES ( filename, path, thumbnail) VALUES (\'%(filename)s\',  \'%(path)s\', \'%(thumbnail)s\')' % \
@@ -60,6 +52,7 @@ def insert_tags(pictureids, tags):
     cursor.close()        
 
 def get_pictures_from_db():
+    init_db()
     connection = get_connection()
     cursor = connection.cursor()
     cursor.execute(select_pictures_stmt())
