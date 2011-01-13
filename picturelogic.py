@@ -127,7 +127,7 @@ class PictureLogic:
         if selectedTags != '':
             insert_tags(pictureids, selectedTags)
         self.addTagsDialog_destroy(self,widget)
-    def addTagsDialog_destroy(widget):
+    def addTagsDialog_destroy(self,widget, event):
         logger.debug("Destroying add tags dialog")
         self.addTagsDialog.destroy()
 class About:
