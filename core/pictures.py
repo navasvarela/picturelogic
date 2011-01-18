@@ -1,16 +1,11 @@
 import os
 import logging
-import logging.config 
-from config import * 
-import Image 
-import picturedb   
+import Image   
 from ExifTags import TAGS
-from picturedb import get_connection, init_db
-
+from picturedb import get_connection, init_db, execute_sql_select
 
 # create logger
-logging.config.fileConfig(LOGGING_CONF) #@UndefinedVariable
-logger = logging.getLogger("pictures")
+logger = logging.getLogger(__name__)
   
 
 image_exts = ['jpg', 'JPG', 'png', 'gif', 'tif', 'bmp', 'xpm']
@@ -26,12 +21,17 @@ def get_tags_insert_sql(tagname):
     return 'INSERT OR IGNORE INTO TAGS (name) VALUES (\'%s\')' % tagname
 
 def get_pictures_with_tag_sql(tagname):
-    return 'SELECT * FROM PICTURES WHERE pictureid IN (SELECT pictureid FROM PICTURETAGS WHERE tagid IN (SELECT tagid FROM TAGS WHERE name = \'%s\'))' % tagname
+    return 'SELECT * FROM PICTURES WHERE id IN (SELECT pictureid FROM PICTURETAGS WHERE tagid IN (SELECT id FROM TAGS WHERE name = \'%s\'))' % tagname
 def get_picturetags_insert_sql(pictureid, tagname):
     return 'INSERT INTO PICTURETAGS (pictureid, tagid) VALUES ( %d, (SELECT ID FROM TAGS WHERE NAME = \'%s\'))' % (pictureid, tagname)
 
+def get_tags_for_picture_sql(pictureid):
+    return 'SELECT name FROM TAGS WHERE ID IN (SELECT TAGID FROM PICTURETAGS WHERE PICTUREID = \'%s\')' % pictureid
 def select_pictures_sql():
     return 'SELECT * FROM PICTURES'
+
+def select_all_tags_sql():
+    return 'SELECT * FROM TAGS'
 
 def insert_picture(picture):
     connection = get_connection()
@@ -52,6 +52,7 @@ def insert_tags(pictureids, tags):
     cursor.close()        
 
 def get_pictures_from_db():
+    logger.debug("Getting pictures from DB")
     init_db()
     connection = get_connection()
     cursor = connection.cursor()
@@ -62,23 +63,18 @@ def get_pictures_from_db():
     return list
 
 def get_tags_from_db():
-    connection = get_connection()
-    cursor = connection.cursor()
-    cursor.execute('SELECT name FROM TAGS')
-    list = []
-    for tag in cursor:
-        list.append(tag)
+    return execute_sql_select('SELECT name FROM TAGS')
+    
+
+def get_tags_for_picture(pictureid):
+    list  = []
+    for tuple in execute_sql_select(get_tags_for_picture_sql(pictureid)):
+        list.append(tuple[0])
     return list
 
 def get_pictures_with_tag(tagname):
-    connection = get_connection()
-    cursor = connection.cursor()
-    cursor.execute(get_pictures_with_tag_sql(tagname))
-    list = []
-    for row in cursor:
-        
-        list.append(row)
-    return list
+    return execute_sql_select(get_pictures_with_tag_sql(tagname))
+   
     
     
 def import_from_folder(folder):

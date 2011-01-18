@@ -2,7 +2,6 @@ import unittest
 from pictures import *
 
 
-
 class TestPictures(unittest.TestCase):
     
     
@@ -16,6 +15,8 @@ class TestPictures(unittest.TestCase):
              
     def test_import_from_folder(self):
         import_from_folder('/home/juan/Pictures/Photos')
+        
+    
         
       
 
