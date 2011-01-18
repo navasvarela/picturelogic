@@ -55,7 +55,7 @@ class PictureLogic:
     def refresh_pictures_on_tag_selected(self, widget):
         iter = self.tagsTree.get_selection().get_selected()[1]
         value_selected = self.tagsStore.get_value(iter, 0)
-        logger.debug("tags tree column 0: "+self.tagsTree.get_column(0).get_title())
+        logger.debug("tags tree column 0: " + self.tagsTree.get_column(0).get_title())
         if iter == None or value_selected == self.tagsTree.get_column(0).get_title():
             self.refresh_all_pictures()
             return        
@@ -64,8 +64,8 @@ class PictureLogic:
         self.pictures = get_pictures_with_tag(tagname)
         picture_names = ""
         for picture in self.pictures:
-            picture_names += picture[2]+", "
-        logger.debug("pictures with tag: "+tagname+ " are: "+picture_names)
+            picture_names += picture[2] + ", "
+        logger.debug("pictures with tag: " + tagname + " are: " + picture_names)
         
         self.refresh_pictures()
           
@@ -109,7 +109,16 @@ class PictureLogic:
         self.iconView.show_all()
         
     def search(self, widget):
-        pass
+        text = self.builder.get_object("entry_search").get_text()
+        logger.debug("Text selected: " + text)
+        if text != '': 
+            self.pictures = search_pictures_by_text(text)
+            picture_names = ""
+            for picture in self.pictures:
+                picture_names += picture[2] + ", "
+            logger.debug("pictures with tag: " + text + " are: " + picture_names)
+            self.refresh_pictures()
+      
     
     def iconview_item_activated(self, widget, item):
         logger.debug("item activated: " + self.pictures_store[item][1])

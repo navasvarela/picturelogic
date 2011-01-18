@@ -30,6 +30,9 @@ def get_tags_for_picture_sql(pictureid):
 def select_pictures_sql():
     return 'SELECT * FROM PICTURES'
 
+def get_pictures_with_tag_fragment_sql(text):
+    return 'SELECT * FROM PICTURES WHERE id IN (SELECT pictureid FROM PICTURETAGS WHERE tagid IN (select id from tags where name like lower(\'%%%s%%\')))' % text
+
 def select_all_tags_sql():
     return 'SELECT * FROM TAGS'
 
@@ -74,7 +77,9 @@ def get_tags_for_picture(pictureid):
 
 def get_pictures_with_tag(tagname):
     return execute_sql_select(get_pictures_with_tag_sql(tagname))
-   
+ 
+def search_pictures_by_text(text):
+    return execute_sql_select(get_pictures_with_tag_fragment_sql(text))  
     
     
 def import_from_folder(folder):
