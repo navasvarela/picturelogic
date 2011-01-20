@@ -1,0 +1,8 @@
+PICTURELOGIC
+
+Dependencies:
+
+-- python 2.6/2.7
+-- pygtk
+-- gtk
+-- python imaging library

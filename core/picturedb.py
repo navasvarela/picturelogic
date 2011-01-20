@@ -23,7 +23,6 @@ def execute_sql_select(sql):
     list = []
     for row in cursor:
         list.append(row)
-    connection.commit()
     cursor.close()
     return list
     

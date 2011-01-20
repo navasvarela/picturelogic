@@ -1,7 +1,7 @@
 import gtk
 import gobject
 import sys
-from pictures import *
+from core import pictures
 import logging
  
 from config import *
@@ -50,10 +50,11 @@ class PictureLogic:
           self.refresh_all_pictures()
           self.buildTagsTree()
     def refresh_all_pictures(self):
-         self.pictures = get_pictures_from_db()
+         self.pictures = pictures.get_pictures_from_db()
          self.refresh_pictures()
     def refresh_pictures_on_tag_selected(self, widget):
         iter = self.tagsTree.get_selection().get_selected()[1]
+        logger.debug(iter)
         value_selected = self.tagsStore.get_value(iter, 0)
         logger.debug("tags tree column 0: " + self.tagsTree.get_column(0).get_title())
         if iter == None or value_selected == self.tagsTree.get_column(0).get_title():
@@ -61,7 +62,7 @@ class PictureLogic:
             return        
         logger.debug("Tag selected: " + value_selected)
         tagname = self.tagsStore.get_value(iter, 0)
-        self.pictures = get_pictures_with_tag(tagname)
+        self.pictures = pictures.get_pictures_with_tag(tagname)
         picture_names = ""
         for picture in self.pictures:
             picture_names += picture[2] + ", "
@@ -83,7 +84,7 @@ class PictureLogic:
         self.importFolderDialog.hide()
         #1 Import images from folder recursively
         
-        import_from_folder(self.folder)
+        pictures.import_from_folder(self.folder)
         
         #2 Display images using gtk icon view
         self.pictures = get_pictures_from_db()
@@ -101,7 +102,7 @@ class PictureLogic:
             logger.debug("Adding " + picture[2])
             pixbuf = gtk.gdk.pixbuf_new_from_file(picture[0])
             picture_caption = ''
-            picture_tags = get_tags_for_picture(picture[3])
+            picture_tags = pictures.get_tags_for_picture(picture[3])
             logger.debug(picture_tags)
             if picture_tags != []:
                 picture_caption = ",".join(picture_tags)
@@ -112,7 +113,7 @@ class PictureLogic:
         text = self.builder.get_object("entry_search").get_text()
         logger.debug("Text selected: " + text)
         if text != '': 
-            self.pictures = search_pictures_by_text(text)
+            self.pictures = pictures.search_pictures_by_text(text)
             picture_names = ""
             for picture in self.pictures:
                 picture_names += picture[2] + ", "
@@ -135,7 +136,7 @@ class PictureLogic:
             item = items[0]
             picture = self.pictures[item[0]]
             label_str += 'File: ' + picture[2] + '\n'
-            exif = parse_db_exif(picture[6])
+            exif = pictures.parse_db_exif(picture[6])
             print exif
             for k in exif:
                label_str += k + ':' + exif[k] + '\n'
@@ -180,7 +181,7 @@ class PictureLogic:
         self.treeWindow = self.builder.get_object("tree_swindow")
         self.tagsStore = gtk.TreeStore(str)
         root = self.tagsStore.append(None, ["Tags"])
-        tags = get_tags_from_db()
+        tags = pictures.get_tags_from_db()
         if tags == []:
             return
         for tagname in tags:
@@ -202,7 +203,7 @@ class PictureLogic:
         logger.debug("refreshing tags tree")
         self.tagsStore.clear()
         root = self.tagsStore.append(None, ["Tags"])
-        tags = get_tags_from_db()
+        tags = pictures.get_tags_from_db()
         if tags == []:
             return
         for tagname in tags:

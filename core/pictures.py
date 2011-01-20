@@ -2,7 +2,7 @@ import os
 import logging
 import Image   
 from ExifTags import TAGS
-from picturedb import get_connection, init_db, execute_sql_select
+from core import picturedb
 
 # create logger
 logger = logging.getLogger(__name__)
@@ -56,8 +56,8 @@ def insert_tags(pictureids, tags):
 
 def get_pictures_from_db():
     logger.debug("Getting pictures from DB")
-    init_db()
-    connection = get_connection()
+    picturedb.init_db()
+    connection = picturedb.get_connection()
     cursor = connection.cursor()
     cursor.execute(select_pictures_sql())
     list = []
@@ -66,20 +66,20 @@ def get_pictures_from_db():
     return list
 
 def get_tags_from_db():
-    return execute_sql_select('SELECT name FROM TAGS')
+    return picturedb.execute_sql_select('SELECT name FROM TAGS')
     
 
 def get_tags_for_picture(pictureid):
     list  = []
-    for tuple in execute_sql_select(get_tags_for_picture_sql(pictureid)):
+    for tuple in picturedb.execute_sql_select(get_tags_for_picture_sql(pictureid)):
         list.append(tuple[0])
     return list
 
 def get_pictures_with_tag(tagname):
-    return execute_sql_select(get_pictures_with_tag_sql(tagname))
+    return picturedb.execute_sql_select(get_pictures_with_tag_sql(tagname))
  
 def search_pictures_by_text(text):
-    return execute_sql_select(get_pictures_with_tag_fragment_sql(text))  
+    return picturedb.execute_sql_select(get_pictures_with_tag_fragment_sql(text))  
     
     
 def import_from_folder(folder):

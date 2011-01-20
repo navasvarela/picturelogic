@@ -1,2 +1,4 @@
 *.pyc
 thumbnails
+/build
+/dist
