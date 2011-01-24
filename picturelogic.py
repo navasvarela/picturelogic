@@ -1,10 +1,10 @@
 import gtk
+import gtk.gdk
 import gobject
 import sys
 from core import pictures
 import logging
- 
-from config import *
+import config
 
 # create logger
 logger = logging.getLogger("picturelogic")
@@ -87,7 +87,7 @@ class PictureLogic:
         pictures.import_from_folder(self.folder)
         
         #2 Display images using gtk icon view
-        self.pictures = get_pictures_from_db()
+        self.pictures = pictures.get_pictures_from_db()
         self.refresh_pictures()
         self.buildTagsTree()
     def openImage(self, widget):
@@ -169,7 +169,7 @@ class PictureLogic:
         addtagsEntry = self.builder.get_object("addtags_entry")
         selectedTags = addtagsEntry.get_text()
         if selectedTags != '':
-            insert_tags(pictureids, selectedTags)
+            pictures.insert_tags(pictureids, selectedTags)
         self.addTagsDialog_destroy(self, widget)
         self.refresh_tags_tree()
         self.refresh_pictures()

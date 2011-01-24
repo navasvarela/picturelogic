@@ -88,7 +88,7 @@ def import_from_folder(folder):
             if is_image(file):
                 picture = {}
                 picture['filename'] = file
-                picture['path'] = os.path.join(root, file)
+                picture['path'] = os.path.join(root.replace(':',''), file)
                 picture['thumbnail'] = generate_and_save_thumbnail(picture['path'], 120, 160, ".jpg")
                 exif = get_exif(picture['path'])
                 exif_str = ''
