@@ -3,6 +3,7 @@ import logging
 import Image   
 from ExifTags import TAGS
 from core import picturedb
+import config
 
 # create logger
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ EXIF_PARAMS = ['YResolution','ResolutionUnit','Make','Flash','DateTime','Meterin
 
 
 def get_pictures_insert_stmt(picture):
-    return 'INSERT INTO PICTURES ( filename, path, thumbnail, raw_exif) VALUES (\'%(filename)s\',  \'%(path)s\', \'%(thumbnail)s\', \'%(raw_exif)s\')' % \
+    return 'INSERT OR IGNORE INTO PICTURES ( filename, path, thumbnail, raw_exif, width, height, twidth, theight) VALUES (\'%(filename)s\',  \'%(path)s\', \'%(thumbnail)s\', \'%(raw_exif)s\', \'%(width)s\', \'%(height)s\', \'%(twidth)s\', \'%(theight)s\')' % \
                         picture
 
 def get_tags_insert_sql(tagname):
@@ -33,18 +34,20 @@ def select_pictures_sql():
 def get_pictures_with_tag_fragment_sql(text):
     return 'SELECT * FROM PICTURES WHERE id IN (SELECT pictureid FROM PICTURETAGS WHERE tagid IN (select id from tags where name like lower(\'%%%s%%\')))' % text
 
+def get_picture_with_path_sql(path):
+    return 'SELECT * FROM PICTURES WHERE path = \'%s\'' % path
 def select_all_tags_sql():
     return 'SELECT * FROM TAGS'
 
 def insert_picture(picture):
-    connection = get_connection()
+    connection = picturedb.get_connection()
     cursor = connection.cursor()
     cursor.execute(get_pictures_insert_stmt(picture))
     connection.commit()
     cursor.close()
 
 def insert_tags(pictureids, tags):
-    connection = get_connection()
+    connection = picturedb.get_connection()
     cursor = connection.cursor()
     for tag in tags.split(','):
         tag = tag.strip()
@@ -81,29 +84,12 @@ def get_pictures_with_tag(tagname):
 def search_pictures_by_text(text):
     return picturedb.execute_sql_select(get_pictures_with_tag_fragment_sql(text))  
     
-    
-def import_from_folder(folder):
-    for root, dirs, files in os.walk(folder): #@UnusedVariable
-        for file in files:
-            if is_image(file):
-                picture = {}
-                picture['filename'] = file
-                picture['path'] = os.path.join(root.replace(':',''), file)
-                picture['thumbnail'] = generate_and_save_thumbnail(picture['path'], 120, 160, ".jpg")
-                exif = get_exif(picture['path'])
-                exif_str = ''
-                for tag in EXIF_PARAMS:
-                    if exif[tag] != '':
-                        if isinstance(exif[tag], (list,tuple)):
-                            exif[tag] = "%d / %d" % (exif[tag][0] ,exif[tag][1])
-                        if isinstance(exif[tag],(int,long)):
-                            exif[tag] = "%d" % exif[tag]
-                        print exif[tag]
-                        exif_str += '%%' + tag + '##'+ exif[tag] 
-                picture['raw_exif'] = exif_str
-                insert_picture(picture)
-    logger.debug("Finished Importing pictures")
-    
+def is_picture_in_db(path):
+    if not picturedb.execute_sql_select(get_picture_with_path_sql(path)):
+        return False
+    else:
+        return True   
+      
 
     
 def is_image(file):
@@ -113,10 +99,12 @@ def is_image(file):
         
     return False  
 
-def generate_and_save_thumbnail(imageFile, h, w, ext):
-    logger.debug("generating thumbnail for file " + imageFile)
-    image = Image.open(imageFile)
-    image = image.resize((w, h), Image.ANTIALIAS)
+def generate_and_save_thumbnail(image, imageFile, ext, picture):
+    width = config.THUMB_SIZE * image.size[0] / max(image.size)
+    height = config.THUMB_SIZE * image.size[1] / max(image.size)
+    image = image.resize((width, height), Image.ANTIALIAS)
+    picture['twidth'] = width
+    picture['theight'] = height
     outFileLocation = "./thumbnails"
     outFile = outFileLocation + imageFile 
     dirname = os.path.dirname(outFile)
@@ -125,25 +113,29 @@ def generate_and_save_thumbnail(imageFile, h, w, ext):
     image.save(outFile)      
     return outFile
 
+
 def get_exif(imageFile):
     logger.debug("extracting exif for file: " + imageFile)
     ret = {}
     i = Image.open(imageFile)
-    info = i._getexif()
-    if (info == None):
+    try:
+        info = i._getexif()
+        if (info == None):
+            logger.debug("No exif information found for file: " + imageFile)
+            return
+        for tag, value in info.items():
+            decoded = TAGS.get(tag, tag)
+            ret[decoded] = value
+        return ret
+    except AttributeError:
         logger.debug("No exif information found for file: " + imageFile)
         return
-    for tag, value in info.items():
-        decoded = TAGS.get(tag, tag)
-        ret[decoded] = value
-    print ret
-    return ret
+
 
 def parse_db_exif(db_exif):
     exif = {}
     for pair_str in db_exif.split('%%'):
         if pair_str != '':
             pair = pair_str.split('##')
-            print pair
             exif[pair[0]] = pair[1]
     return exif

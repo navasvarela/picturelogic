@@ -20,29 +20,27 @@ def execute_sql_select(sql):
     connection = get_connection()
     cursor = connection.cursor()
     cursor.execute(sql)
-    list = []
+    rowlist = []
     for row in cursor:
-        list.append(row)
+        rowlist.append(row)
     cursor.close()
-    return list
+    return rowlist
     
 def init_db():
     try:
-        logger.debug("Trying to open DB structure file. It must exist")
         structFile = open(DB_STRUCT_FILE, 'r') #@UndefinedVariable
-        logger.debug("Trying to open DB file")
         execute_sql_update('SELECT * FROM VOLUMES')
         
     except OperationalError:
-            logger.debug("DB file is either empty or non existent, creating empty database")
-            print "Creating empty database"
-            connection = get_connection()
-            cursor = connection.cursor()
-            while True:
-                line = structFile.readline()
-                if not line: break
-                cursor.execute(line)
-            cursor.close()
+        logger.debug("DB file is either empty or non existent, creating empty database")
+        print "Creating empty database"
+        connection = get_connection()
+        cursor = connection.cursor()
+        while True:
+            line = structFile.readline()
+            if not line: break
+            cursor.execute(line)
+        cursor.close()
     finally:      
         structFile.close()
        

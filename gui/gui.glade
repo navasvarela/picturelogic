@@ -277,9 +277,9 @@
               <object class="GtkHBox" id="hbox3">
                 <property name="visible">True</property>
                 <child>
-                  <object class="GtkLabel" id="label1">
+                  <object class="GtkLabel" id="status_bar_label">
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">label
+                    <property name="label" translatable="yes">
 												</property>
                   </object>
                   <packing>
@@ -287,9 +287,11 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkHScale" id="hscale1">
+                  <object class="GtkHScale" id="image_scale">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="adjustment">images_adjustment</property>
+                    <signal name="value_changed" handler="on_image_scale_value_changed"/>
                   </object>
                   <packing>
                     <property name="position">1</property>
@@ -368,6 +370,7 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_importfolder_cancel_button_clicked"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -553,4 +556,11 @@
     </action-widgets>
   </object>
   <object class="GtkFileFilter" id="filefilter1"/>
+  <object class="GtkAdjustment" id="images_adjustment">
+    <property name="value">50</property>
+    <property name="lower">10</property>
+    <property name="upper">100</property>
+    <property name="step_increment">10</property>
+    <property name="page_increment">10</property>
+  </object>
 </interface>

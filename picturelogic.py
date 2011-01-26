@@ -1,10 +1,9 @@
-import gtk
 import gtk.gdk
 import gobject
 import sys
-from core import pictures
+from core import pictures, thumbnails
 import logging
-import config
+
 
 # create logger
 logger = logging.getLogger("picturelogic")
@@ -19,39 +18,72 @@ class PictureLogic:
           
     def __init__(self):
           
-          self.builder = gtk.Builder()
-          self.builder.add_from_file("gui/gui.glade")
-          self.window = self.builder.get_object("window1")
-          self.window.show()
-          self.addTagsDialog = self.builder.get_object("addtags_dialog")
-          dic = {
-                 "on_quit_menuitem_activate" : self.close,
-                 "on_about_menuitem_activate" : self.about,
-                 "on_import_folder_activate": self.importFolder,
-                 "on_importfolder_ok_button_clicked": self.doImportFolder,
-                 "on_open_image_activate": self.openImage,
-                 "on_search_button_clicked" : self.search,
-                 "on_pictures_iconview_item_activated" : self.iconview_item_activated,
-                 "on_pictures_iconview_selection_changed" : self.iconview_selection_changed,
-                 "on_pictures_iconview_button_press_event": self.iconview_button_press_events,
-                 "on_addtags_cancel_button_clicked": self.addTagsDialog_destroy,
-                 "on_addtags_ok_button_clicked": self.doAddTags
-                 }
-          self.builder.connect_signals(dic)
-          # Initialise IconView and Pictures Store
-          self.iconView = self.builder.get_object("pictures_iconview")
-          self.pictures_store = gtk.ListStore(gtk.gdk.Pixbuf, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_INT)
-          self.iconView.set_model(self.pictures_store)
-          self.iconView.set_pixbuf_column(0)
-          self.iconView.set_text_column(1)
- 
-          self.tagsTree = gtk.TreeView()
-          self.tagsTree.connect("cursor-changed", self.refresh_pictures_on_tag_selected)
-          self.refresh_all_pictures()
-          self.buildTagsTree()
+        self.builder = gtk.Builder()
+        self.builder.add_from_file("gui/gui.glade")
+        self.window = self.builder.get_object("window1")
+        self.window.show()
+        self.addTagsDialog = self.builder.get_object("addtags_dialog")
+        self.images_adjustment = self.builder.get_object('images_adjustment')
+        self.images_adjustment.set_value(60)
+        self.images_adjustment.set_lower(20)
+        self.images_adjustment.set_upper(100)
+        self.about_widget = self.builder.get_object("aboutdialog")
+        self.about_widget.hide()
+        self.iconMenu = gtk.Menu()
+        self.importFolderDialog = self.builder.get_object("importfolderdialog")
+       
+        dic = {
+               "on_quit_menuitem_activate" : self.close,
+               "on_about_menuitem_activate" : self.about_widget_show,
+               "on_import_folder_activate": self.show_import_folder_dialog,
+               "on_importfolder_ok_button_clicked": self.doImportFolder,
+               "on_importfolder_cancel_button_clicked": self.hide_import_folder_dialog,
+               "on_open_image_activate": self.openImage,
+               "on_search_button_clicked" : self.search,
+               "on_pictures_iconview_item_activated" : self.iconview_item_activated,
+               "on_pictures_iconview_selection_changed" : self.iconview_selection_changed,
+               "on_pictures_iconview_button_press_event": self.iconview_button_press_events,
+               "on_addtags_cancel_button_clicked": self.addTagsDialog_destroy,
+               "on_addtags_ok_button_clicked": self.doAddTags,
+               "on_image_scale_value_changed": self.resize_images
+               }
+        self.builder.connect_signals(dic)
+        # Initialise IconView and Pictures Store
+        self.iconView = self.builder.get_object("pictures_iconview")
+        self.pictures_store = gtk.ListStore(gtk.gdk.Pixbuf, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_INT)
+        self.iconView.set_model(self.pictures_store)
+        self.iconView.set_pixbuf_column(0)
+        self.iconView.set_text_column(1)
+        self.exif_label = self.builder.get_object('exif_label')
+        self.status_label = self.builder.get_object('status_bar_label')
+        self.tagsTree = gtk.TreeView()
+        self.tagsTree.connect("cursor-changed", self.refresh_pictures_on_tag_selected)
+        self.refresh_all_pictures()
+        self.buildTagsTree()
+        self.status_label.set_text('Welcome to PictureLogic')
+
+    def show_import_folder_dialog(self, widget):
+        self.importFolderDialog.show()
+    
+    def hide_import_folder_dialog(self, widget):
+        self.importFolderDialog.hide()
+
+    def resize_images(self,widget):
+        resize_value = self.images_adjustment.get_value()
+        for item in self.pictures_store:
+            original_width = self.pictures[item[4]][9]
+            original_height = self.pictures[item[4]][10]
+            dest_width = original_width * resize_value / 100
+            dest_height = original_height * resize_value / 100
+            original_thumbnail =  gtk.gdk.pixbuf_new_from_file(item[2]) #@UndefinedVariable
+            item[0] = original_thumbnail.scale_simple(dest_width, dest_height,gtk.gdk.INTERP_BILINEAR) #@UndefinedVariable
+        self.iconView.set_item_width(dest_width)    
+                 
     def refresh_all_pictures(self):
-         self.pictures = pictures.get_pictures_from_db()
-         self.refresh_pictures()
+        logger.debug("Refreshing all pictures from DB")
+        self.pictures = pictures.get_pictures_from_db()
+        self.refresh_pictures()
+        self.buildTagsTree()
     def refresh_pictures_on_tag_selected(self, widget):
         iter = self.tagsTree.get_selection().get_selected()[1]
         logger.debug(iter)
@@ -70,26 +102,18 @@ class PictureLogic:
         
         self.refresh_pictures()
           
-    def about(self, widget):
-        self.about = About(self.builder)
-        
-    def importFolder(self, widget):
-        self.importFolderDialog = self.builder.get_object("importfolderdialog")
-        self.importFolderDialog.show()
-    def doImportFolder(self, widget):
-        
+   
+    def doImportFolder(self, widget):        
         self.folder = self.importFolderDialog.get_filename()
+        
         logger.debug("Import all pictures from folder: " + self.folder)
         # Close import dialog
         self.importFolderDialog.hide()
-        #1 Import images from folder recursively
+        #1 Import images from folder recursively        
+        thumbnails.import_from_folder(self.folder, self.status_label, self.refresh_all_pictures)
         
-        pictures.import_from_folder(self.folder)
         
-        #2 Display images using gtk icon view
-        self.pictures = pictures.get_pictures_from_db()
-        self.refresh_pictures()
-        self.buildTagsTree()
+        
     def openImage(self, widget):
         self.openImageDialog = self.builder.get_object("openimagedialog")
         self.openImageDialog.show()
@@ -98,15 +122,16 @@ class PictureLogic:
             return
         logger.debug("Refreshing pictures")       
         self.pictures_store.clear()
-        for picture in self.pictures:
+        for index,picture in enumerate(self.pictures):
             logger.debug("Adding " + picture[2])
             pixbuf = gtk.gdk.pixbuf_new_from_file(picture[0])
+            
             picture_caption = ''
             picture_tags = pictures.get_tags_for_picture(picture[3])
             logger.debug(picture_tags)
             if picture_tags != []:
                 picture_caption = ",".join(picture_tags)
-            self.pictures_store.append([pixbuf, picture_caption, picture[0], picture[3]])
+            self.pictures_store.append([pixbuf, picture_caption, picture[0], picture[3], index])
         self.iconView.show_all()
         
     def search(self, widget):
@@ -127,7 +152,6 @@ class PictureLogic:
     
     def iconview_selection_changed(self, widget):
         items = self.iconView.get_selected_items()
-        self.exif_label = self.builder.get_object('exif_label')
         for item in items:
             logger.debug("item selected: " + self.pictures_store[item][1])
         # If there is only one item selected, display exif.
@@ -147,16 +171,15 @@ class PictureLogic:
     def iconview_button_press_events(self, widget, event):      
         item = self.iconView.get_path_at_pos(event.x, event.y)
         if (event.button == 3 and item != None):  
-          logger.debug("item where right click ocurred: " + self.pictures_store[item][1])
-          self.iconView.select_path(item)
-          self.iconMenu = gtk.Menu()
-          addTagsItem = gtk.MenuItem("Add tags")
-          addTagsItem.connect("activate", self.addTags)
-          removeTagsItem = gtk.MenuItem("Remove tags")
-          self.iconMenu.append(addTagsItem)
-          self.iconMenu.append(removeTagsItem)
-          self.iconMenu.popup(None, None, None, event.button, event.time, None)
-          self.iconMenu.show_all()
+            logger.debug("item where right click ocurred: " + self.pictures_store[item][1])
+            self.iconView.select_path(item)
+            addTagsItem = gtk.MenuItem("Add tags")
+            addTagsItem.connect("activate", self.addTags)
+            removeTagsItem = gtk.MenuItem("Remove tags")
+            self.iconMenu.append(addTagsItem)
+            self.iconMenu.append(removeTagsItem)
+            self.iconMenu.popup(None, None, None, event.button, event.time, None)
+            self.iconMenu.show_all()
     def addTags(self, widget):
         self.addTagsDialog.show()
         
@@ -210,16 +233,17 @@ class PictureLogic:
             logger.debug("appending tag to tree: " + tagname[0])
             self.tagsStore.append(root, tagname)
         
+    def about_widget_show(self, widget):
+        self.about_widget.run()
+        self.about_widget.hide()
                
         
-class About:
+                
+gobject.threads_init()
     
-    def __init__(self, builder):
-        
-        self.window = builder.get_object("aboutdialog")
-        self.window.show()
-            
-print sys.path    
 PictureLogic()
-gtk.main()   
+
+gtk.main()
+   
+
     
