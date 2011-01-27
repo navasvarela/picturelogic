@@ -31,6 +31,8 @@ class PictureLogic:
         self.about_widget.hide()
         self.iconMenu = gtk.Menu()
         self.importFolderDialog = self.builder.get_object("importfolderdialog")
+        self.treeWindow = self.builder.get_object("tree_swindow")
+        self.tagsStore = gtk.TreeStore(str)
        
         dic = {
                "on_quit_menuitem_activate" : self.close,
@@ -59,7 +61,7 @@ class PictureLogic:
         self.tagsTree = gtk.TreeView()
         self.tagsTree.connect("cursor-changed", self.refresh_pictures_on_tag_selected)
         self.refresh_all_pictures()
-        self.buildTagsTree()
+        self.refresh_tags_tree()
         self.status_label.set_text('Welcome to PictureLogic')
 
     def show_import_folder_dialog(self, widget):
@@ -83,7 +85,7 @@ class PictureLogic:
         logger.debug("Refreshing all pictures from DB")
         self.pictures = pictures.get_pictures_from_db()
         self.refresh_pictures()
-        self.buildTagsTree()
+        self.refresh_tags_tree()
     def refresh_pictures_on_tag_selected(self, widget):
         iter = self.tagsTree.get_selection().get_selected()[1]
         logger.debug(iter)
@@ -163,7 +165,7 @@ class PictureLogic:
             exif = pictures.parse_db_exif(picture[6])
             print exif
             for k in exif:
-               label_str += k + ':' + exif[k] + '\n'
+                label_str += k + ':' + exif[k] + '\n'
             
             self.exif_label.set_text(label_str)
         
@@ -199,28 +201,6 @@ class PictureLogic:
     def addTagsDialog_destroy(self, widget, event):
         logger.debug("Destroying add tags dialog")
         self.addTagsDialog.destroy()
-    def buildTagsTree(self):
-        logger.debug("Building Tags Tree")
-        self.treeWindow = self.builder.get_object("tree_swindow")
-        self.tagsStore = gtk.TreeStore(str)
-        root = self.tagsStore.append(None, ["Tags"])
-        tags = pictures.get_tags_from_db()
-        if tags == []:
-            return
-        for tagname in tags:
-            logger.debug("appending tag to tree: " + tagname[0])
-            self.tagsStore.append(root, tagname)
-       
-        self.tagsTree.set_model(self.tagsStore)
-        column = gtk.TreeViewColumn("Tags")
-        cell = gtk.CellRendererText()
-        self.tagsTree.append_column(column)
-        column.pack_start(cell, False)
-        column.add_attribute(cell, "text", 0)
-        if self.tagsTree in self.treeWindow.get_children():
-            self.treeWindow.remove(self.tagsTree)
-        self.treeWindow.add(self.tagsTree)
-        self.tagsTree.show_all() 
         
     def refresh_tags_tree(self):
         logger.debug("refreshing tags tree")
@@ -232,6 +212,20 @@ class PictureLogic:
         for tagname in tags:
             logger.debug("appending tag to tree: " + tagname[0])
             self.tagsStore.append(root, tagname)
+        if not self.tagsTree.get_model():
+            self.init_tags_tree()
+        
+    def init_tags_tree(self):
+        self.tagsTree.set_model(self.tagsStore)
+        column = gtk.TreeViewColumn("Tags")
+        cell = gtk.CellRendererText()
+        self.tagsTree.append_column(column)
+        column.pack_start(cell, False)
+        column.add_attribute(cell, "text", 0)
+        if self.tagsTree in self.treeWindow.get_children():
+            self.treeWindow.remove(self.tagsTree)
+        self.treeWindow.add(self.tagsTree)
+        self.tagsTree.show_all()
         
     def about_widget_show(self, widget):
         self.about_widget.run()
