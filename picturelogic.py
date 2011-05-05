@@ -71,19 +71,23 @@ class PictureLogic:
     def resize_images(self,widget):
         resize_value = self.images_adjustment.get_value()
         for item in self.pictures_store:
-            original_width = self.pictures[item[4]][9]
-            original_height = self.pictures[item[4]][10]
-            dest_width = original_width * resize_value / 100
-            dest_height = original_height * resize_value / 100
-            original_thumbnail =  gtk.gdk.pixbuf_new_from_file(item[2]) #@UndefinedVariable
-            item[0] = original_thumbnail.scale_simple(dest_width, dest_height,gtk.gdk.INTERP_BILINEAR) #@UndefinedVariable
-        self.iconView.set_item_width(dest_width)    
-                 
+            item[0] = self.resize_picture(self.pictures[item[4]], resize_value)
+                     
+    def resize_picture(self, picture, resize_value):
+        logger.debug('Resizing picture '+picture[2])   
+        original_width = picture[9]
+        original_height = picture[10]
+        dest_width = original_width * resize_value / 100
+        dest_height = original_height * resize_value / 100
+        original_thumbnail =  gtk.gdk.pixbuf_new_from_file(picture[4]) #@UndefinedVariable
+        return original_thumbnail.scale_simple(int(dest_width), int(dest_height),gtk.gdk.INTERP_BILINEAR)
+    
     def refresh_all_pictures(self):
         logger.debug("Refreshing all pictures from DB")
         self.pictures = pictures.get_pictures_from_db()
         self.refresh_pictures()
         self.buildTagsTree()
+        
     def refresh_pictures_on_tag_selected(self, widget):
         iter = self.tagsTree.get_selection().get_selected()[1]
         logger.debug(iter)
@@ -117,15 +121,15 @@ class PictureLogic:
     def openImage(self, widget):
         self.openImageDialog = self.builder.get_object("openimagedialog")
         self.openImageDialog.show()
-    def refresh_pictures(self):                       
+    def refresh_pictures(self):   
+        resize_value = self.images_adjustment.get_value()                    
         if self.pictures == []:
             return
         logger.debug("Refreshing pictures")       
         self.pictures_store.clear()
         for index,picture in enumerate(self.pictures):
             logger.debug("Adding " + picture[2])
-            pixbuf = gtk.gdk.pixbuf_new_from_file(picture[0])
-            
+            pixbuf = self.resize_picture(picture, resize_value)
             picture_caption = ''
             picture_tags = pictures.get_tags_for_picture(picture[3])
             logger.debug(picture_tags)
